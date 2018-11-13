@@ -2,18 +2,37 @@
 
 # started from https://stackoverflow.com/questions/36060346/creating-a-simple-chat-application-in-python-sockets
 
-import socket, threading
+import socket, threading, struct
 
 server_password = input("password:")
 
 # list of person, socket, list of registered services
 clientlist = []
 
+def send_one_message(sock, data):
+    length = len(data)
+    sock.sendall(struct.pack('!I', length))
+    sock.sendall(data)
+    
+def recvall(sock, count):
+    buf = b''
+    while count:
+        newbuf = sock.recv(count)
+        if not newbuf: return None
+        buf += newbuf
+        count -= len(newbuf)
+    return buf
+    
+def recv_one_message(sock):
+    lengthbuf = recvall(sock, 4)
+    length, = struct.unpack('!I', lengthbuf)
+    return recvall(sock, length)
+
 def accept_client():
     while True:
         client_sock, client_address = server_socket.accept()
-        person = client_sock.recv(1024)
-        password = client_sock.recv(1024)
+        person = recv_one_message(client_sock)
+        password = recv_one_message(client_sock)
         if password.decode() != server_password:
             print("invalid password:",person.decode(),password.decode())
             client_sock.close()
@@ -30,7 +49,7 @@ def process_client(client):
     while True:
         try:
             # blocking call, hence one thread per client
-            payload = client_sock.recv(1024)
+            payload = recv_one_message(client_sock)
             if payload:
                 msg = person.decode() + ":" + payload.decode()
                 # log everything
@@ -58,7 +77,7 @@ def broadcast_msg(client, msg):
         allservice = 'ALL:'+program
         for c in clientlist:
             if service in c[2] or (client != c and allservice in c[2]):
-                c[1].send(bytes(msg, 'utf-8'))
+                send_one_message(c[1], bytes(msg, 'utf-8'))
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = socket.gethostbyname(socket.gethostname())
