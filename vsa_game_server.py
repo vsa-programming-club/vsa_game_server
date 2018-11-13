@@ -1,6 +1,7 @@
 # vsa game server
 
 # started from https://stackoverflow.com/questions/36060346/creating-a-simple-chat-application-in-python-sockets
+# send/recv_one_message from http://stupidpythonideas.blogspot.com/2013/05/sockets-are-byte-streams-not-message.html
 
 import socket, threading, struct
 
@@ -80,7 +81,9 @@ def broadcast_msg(client, msg):
                 send_one_message(c[1], bytes(msg, 'utf-8'))
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host = socket.gethostbyname(socket.gethostname())
+#host = socket.gethostbyname(socket.gethostname())
+# AWS wants this address
+host = '0.0.0.0'
 port = 5023
 server_socket.bind((host, port))
 server_socket.listen(1)
